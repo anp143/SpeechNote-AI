@@ -1,0 +1,519 @@
+
+<div class="history-page">
+
+ <!-- Success toast notification -->
+<div
+  *ngIf="successMessage"
+  class="toast-message"
+  role="status"
+  aria-live="polite"
+>
+  <span class="toast-icon">✓</span>
+
+  <div class="toast-content">
+    <strong>Success!</strong>
+    <p>{{ successMessage }}</p>
+  </div>
+
+  <button
+    type="button"
+    class="toast-close"
+    aria-label="Dismiss notification"
+    (click)="successMessage = ''"
+  >
+    ×
+  </button>
+
+  <div class="toast-progress"></div>
+</div>
+
+  <div
+    *ngIf="errorMessage && !isLoading && !editingTranscript"
+    class="feedback-message error-message"
+    role="alert"
+  >
+    <span>{{ errorMessage }}</span>
+    <button
+      type="button"
+      aria-label="Dismiss error message"
+      (click)="errorMessage = ''"
+    >
+      ×
+    </button>
+  </div>
+
+  <!-- Page header -->
+  <header class="history-header">
+    <div>
+      <a class="back-link" routerLink="/dashboard">
+        ← Back to workspace
+      </a>
+
+      <h1>Transcription history</h1>
+      <p>View and manage your saved transcripts.</p>
+    </div>
+
+    <a class="new-button" routerLink="/dashboard">
+      + New transcription
+    </a>
+  </header>
+
+  <!-- Main history container -->
+  <section class="history-container">
+
+    <div class="history-toolbar">
+      <div>
+        <h2>All transcripts</h2>
+        <p>
+          {{ transcriptions.length }}
+          {{ transcriptions.length === 1 ? 'record' : 'records' }}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="refresh-button"
+        [disabled]="isLoading"
+        (click)="loadTranscriptions()"
+      >
+        ↻ Refresh
+      </button>
+    </div>
+
+    <!-- Search -->
+    <div class="search-container">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+
+      <input
+        #searchInput
+        type="search"
+        placeholder="Search by title, content, or language..."
+        aria-label="Search transcripts"
+        (input)="searchTerm = searchInput.value"
+      />
+    </div>
+
+    <!-- Loading state -->
+    <div
+      *ngIf="isLoading"
+      class="state-message"
+      role="status"
+    >
+      <span class="spinner"></span>
+      <p>Loading transcripts...</p>
+    </div>
+
+    <!-- Loading error -->
+    <div
+      *ngIf="!isLoading && errorMessage && !editingTranscript && transcriptions.length === 0"
+      class="state-message error-state"
+      role="alert"
+    >
+      <h3>Unable to load transcripts</h3>
+      <p>{{ errorMessage }}</p>
+
+      <button
+        type="button"
+        class="outline-button"
+        (click)="loadTranscriptions()"
+      >
+        Try again
+      </button>
+    </div>
+
+    <!-- Empty state -->
+    <div
+      *ngIf="!isLoading && !errorMessage && transcriptions.length === 0"
+      class="state-message empty-state"
+    >
+      <div class="empty-icon">▤</div>
+
+      <h3>No transcripts saved yet</h3>
+      <p>Your saved transcripts will appear here.</p>
+
+      <a routerLink="/dashboard" class="outline-button">
+        Create transcription
+      </a>
+    </div>
+
+    <!-- No search results -->
+    <div
+      *ngIf="!isLoading && !errorMessage && transcriptions.length > 0 && filteredTranscriptions.length === 0"
+      class="state-message"
+    >
+      <h3>No matching transcripts</h3>
+      <p>Try another title, content, or language.</p>
+    </div>
+
+    <!-- Transcription table -->
+    <div
+      *ngIf="!isLoading && !errorMessage && filteredTranscriptions.length > 0"
+      class="table-wrapper"
+    >
+      <table>
+        <thead>
+          <tr>
+            <th>Transcript</th>
+            <th>Language</th>
+            <th>Date created</th>
+            <th>Words</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr
+            *ngFor="let record of filteredTranscriptions; trackBy: trackById"
+          >
+            <!-- Transcript details -->
+            <td>
+              <div class="transcript-cell">
+                <div class="file-icon" aria-hidden="true">▤</div>
+
+                <div class="transcript-info">
+                  <strong>{{ record.title }}</strong>
+                  <span>{{ record.transcriptText }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Language -->
+            <td>
+              <span class="language-label">
+                {{ record.language || 'Unknown' }}
+              </span>
+            </td>
+
+            <!-- Date -->
+            <td class="date-cell">
+              {{
+                record.createdAt
+                  ? (record.createdAt | date:'medium')
+                  : '—'
+              }}
+            </td>
+
+            <!-- Word count -->
+            <td class="word-cell">
+              {{ getWordCount(record.transcriptText) }}
+            </td>
+
+            <!-- Actions -->
+            <td>
+              <div class="row-actions">
+                <button
+                  type="button"
+                  class="more-button"
+                  (click)="openTranscript(record)"
+                  [attr.aria-label]="'View ' + record.title"
+                >
+                  View
+                </button>
+
+                <button
+                  type="button"
+                  class="edit-button"
+                  (click)="startEditing(record)"
+                  [attr.aria-label]="'Edit ' + record.title"
+                  [disabled]="isSaving || isDeleting"
+                >
+                  Edit
+                </button>
+
+                <button
+  type="button"
+  class="delete-button"
+  (click)="openDeleteModal(record)"
+  [attr.aria-label]="'Delete ' + record.title"
+  [disabled]="isDeleting || isSaving"
+>
+  Delete
+</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Table footer -->
+    <footer
+      *ngIf="!isLoading && !errorMessage && filteredTranscriptions.length > 0"
+      class="table-footer"
+    >
+      Showing {{ filteredTranscriptions.length }}
+      of {{ transcriptions.length }} records
+    </footer>
+
+  </section>
+
+  <!-- Page footer -->
+  <footer class="history-footer">
+    SpeechNote AI <span>·</span> Transcription management
+  </footer>
+
+  <!-- VIEW TRANSCRIPT MODAL -->
+  <div
+    *ngIf="selectedTranscript"
+    class="modal-backdrop"
+    (click)="closeTranscript()"
+  >
+    <section
+      class="transcript-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="transcript-modal-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="modal-header">
+        <div>
+          <span class="modal-eyebrow">SAVED TRANSCRIPT</span>
+          <h2 id="transcript-modal-title">
+            {{ selectedTranscript.title }}
+          </h2>
+        </div>
+
+        <button
+          type="button"
+          class="close-button"
+          aria-label="Close transcript"
+          (click)="closeTranscript()"
+        >
+          ×
+        </button>
+      </header>
+
+      <div class="modal-meta">
+        <span>{{ selectedTranscript.language || 'Unknown language' }}</span>
+
+        <span>
+          {{
+            selectedTranscript.createdAt
+              ? (selectedTranscript.createdAt | date:'medium')
+              : 'Date unavailable'
+          }}
+        </span>
+      </div>
+
+      <div class="modal-transcript">
+        {{ selectedTranscript.transcriptText }}
+      </div>
+
+      <footer class="modal-footer">
+        <button
+          type="button"
+          class="outline-button"
+          (click)="closeTranscript()"
+        >
+          Close
+        </button>
+
+        <button
+          type="button"
+          class="edit-button"
+          (click)="startEditing(selectedTranscript); closeTranscript()"
+        >
+          Edit transcript
+        </button>
+      </footer>
+    </section>
+  </div>
+
+  <!-- EDIT TRANSCRIPT MODAL -->
+  <div
+    *ngIf="editingTranscript"
+    class="modal-backdrop"
+    (click)="cancelEditing()"
+  >
+    <section
+      class="transcript-modal edit-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-modal-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="modal-header">
+        <div>
+          <span class="modal-eyebrow">EDIT TRANSCRIPT</span>
+          <h2 id="edit-modal-title">Update your transcript</h2>
+          <p class="modal-description">
+            Update the title, language, or transcript content.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="close-button"
+          aria-label="Cancel editing"
+          (click)="cancelEditing()"
+          [disabled]="isSaving"
+        >
+          ×
+        </button>
+      </header>
+
+      <form
+        class="edit-form-body"
+        #editForm="ngForm"
+        (ngSubmit)="saveChanges()"
+      >
+        <!-- Title -->
+        <div class="form-group">
+          <label for="edit-title">Transcript title</label>
+
+          <input
+            id="edit-title"
+            type="text"
+            name="editTitle"
+            [(ngModel)]="editTitle"
+            #titleModel="ngModel"
+            placeholder="Enter transcript title"
+            required
+            maxlength="150"
+            [disabled]="isSaving"
+          />
+
+          <small
+            *ngIf="titleModel.invalid && titleModel.touched"
+            class="validation-error"
+          >
+            Please enter a title (maximum 150 characters).
+          </small>
+        </div>
+
+        <!-- Language -->
+        <div class="form-group">
+          <label for="edit-language">Language</label>
+
+          <select
+            id="edit-language"
+            name="editLanguage"
+            [(ngModel)]="editLanguage"
+            required
+            [disabled]="isSaving"
+          >
+            <option value="" disabled>Select language</option>
+            <option value="en-US">English (US)</option>
+            <option value="en-IN">English (India)</option>
+            <option value="hi-IN">Hindi</option>
+            <option value="kn-IN">Kannada</option>
+            <option value="ta-IN">Tamil</option>
+            <option value="te-IN">Telugu</option>
+            <option value="mr-IN">Marathi</option>
+            <option value="bn-IN">Bengali</option>
+          </select>
+        </div>
+
+        <!-- Transcript text -->
+        <div class="form-group">
+          <label for="edit-transcript-text">Transcript content</label>
+
+          <textarea
+            id="edit-transcript-text"
+            name="editText"
+            [(ngModel)]="editText"
+            #textModel="ngModel"
+            rows="8"
+            placeholder="Enter transcript content"
+            required
+            [disabled]="isSaving"
+          ></textarea>
+
+          <small
+            *ngIf="textModel.invalid && textModel.touched"
+            class="validation-error"
+          >
+            Transcript content cannot be empty.
+          </small>
+
+          <small class="character-count">
+            {{ editText.length }} characters
+          </small>
+        </div>
+
+        <!-- Edit error -->
+        <div
+          *ngIf="editingTranscript && errorMessage"
+          class="inline-error"
+          role="alert"
+        >
+          {{ errorMessage }}
+        </div>
+
+        <!-- Form actions -->
+        <footer class="modal-footer edit-form-footer">
+          <button
+            type="button"
+            class="outline-button"
+            (click)="cancelEditing()"
+            [disabled]="isSaving"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="save-edit-button"
+            [disabled]="isSaving || editForm.invalid || !editTitle.trim() || !editText.trim() || !editLanguage"
+          >
+            <span *ngIf="!isSaving">Save changes</span>
+            <span *ngIf="isSaving">Saving...</span>
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+
+
+  
+<!-- DELETE CONFIRMATION MODAL -->
+<div
+  *ngIf="showDeleteModal && transcriptToDelete"
+  class="modal-backdrop delete-backdrop"
+  (click)="closeDeleteModal()"
+>
+  <section
+    class="delete-modal"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="delete-modal-title"
+    aria-describedby="delete-modal-description"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="delete-icon">
+      <span aria-hidden="true">!</span>
+    </div>
+
+    <h2 id="delete-modal-title">Delete transcript?</h2>
+
+    <p class="delete-description" id="delete-modal-description">
+      Are you sure you want to delete
+      <strong>{{ transcriptToDelete.title }}</strong>?
+      This action cannot be undone.
+    </p>
+
+    <div class="delete-modal-actions">
+      <button
+        type="button"
+        class="cancel-delete-button"
+        (click)="closeDeleteModal()"
+        [disabled]="isDeleting"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="confirm-delete-button"
+        (click)="confirmDelete()"
+        [disabled]="isDeleting"
+      >
+        <span *ngIf="!isDeleting">Yes, delete</span>
+        <span *ngIf="isDeleting">Deleting...</span>
+      </button>
+    </div>
+  </section>
+</div>
+
+
+</div>

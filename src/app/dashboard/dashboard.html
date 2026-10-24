@@ -1,0 +1,391 @@
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" routerLink="/dashboard">
+      <span class="brand-mark">S</span>
+      <span>SpeechNote <small>AI</small></span>
+    </a>
+
+    <div class="workspace-switcher">
+      <span class="workspace-avatar">SN</span>
+      <div>
+        <strong>Personal workspace</strong>
+        <small>SpeechNote project</small>
+      </div>
+      <span class="switch-arrow">⌄</span>
+    </div>
+
+    <p class="nav-heading">WORKSPACE</p>
+
+    <nav class="nav-list">
+      <a class="nav-link active" routerLink="/dashboard">
+        <span class="nav-icon">▦</span>
+        Dashboard
+        <span class="nav-indicator"></span>
+      </a>
+
+      <a class="nav-link" routerLink="/history">
+        <span class="nav-icon">◷</span>
+        Transcription history
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="help-card">
+        <span class="help-icon">?</span>
+        <div>
+          <strong>Need help?</strong>
+          <small>Explore your workspace</small>
+        </div>
+      </div>
+
+      <div class="profile-row">
+        <div class="profile-avatar">U</div>
+        <div class="profile-details">
+          <strong>Workspace user</strong>
+          <small>Local development</small>
+        </div>
+        <span class="profile-menu">•••</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-panel">
+    <header class="topbar">
+      <div class="breadcrumbs">
+        <span>Workspace</span>
+        <span>/</span>
+        <strong>Dashboard</strong>
+      </div>
+
+      <div class="topbar-right">
+        <span class="environment-label">
+          <span class="environment-dot"></span>
+          Development
+        </span>
+        <div class="top-avatar">U</div>
+      </div>
+    </header>
+
+    <section class="page-heading">
+      <div>
+        <p class="overline">YOUR SPEECH WORKSPACE</p>
+        <h1>Transcription dashboard</h1>
+        <p class="page-subtitle">
+          Capture speech, edit your transcript, and manage saved records.
+        </p>
+      </div>
+
+      <a class="history-button" routerLink="/history">
+        <span>◷</span> View history
+      </a>
+    </section>
+
+    <section class="summary-grid">
+      <article class="summary-card">
+        <div class="summary-top">
+          <span class="summary-label">CURRENT SESSION</span>
+          <span class="summary-icon purple-icon">◉</span>
+        </div>
+        <strong class="summary-value">Ready</strong>
+        <span class="summary-note">
+          Start when you're ready to speak
+        </span>
+      </article>
+
+      <article class="summary-card">
+        <div class="summary-top">
+          <span class="summary-label">WORDS IN EDITOR</span>
+          <span class="summary-icon blue-icon">≡</span>
+        </div>
+        <strong class="summary-value">{{ wordCount }}</strong>
+        <span class="summary-note">Words in your current draft</span>
+      </article>
+
+      <article class="summary-card">
+        <div class="summary-top">
+          <span class="summary-label">CHARACTERS</span>
+          <span class="summary-icon green-icon">Aa</span>
+        </div>
+        <strong class="summary-value">{{ characterCount }}</strong>
+        <span class="summary-note">Characters in your current draft</span>
+      </article>
+    </section>
+
+    <section class="content-grid">
+      <article class="panel editor-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title-row">
+              <span class="panel-icon">≋</span>
+              <h2>Live transcription</h2>
+            </div>
+            <p>Speak naturally and review your recognized text.</p>
+          </div>
+
+          <span class="session-badge">
+            <span class="session-dot"></span>
+            {{ statusMessage }}
+          </span>
+        </div>
+
+        <div class="settings-row">
+          <div class="setting-field">
+            <label for="language">Speech language</label>
+            
+<select
+  id="language"
+  [(ngModel)]="selectedLanguage"
+  [disabled]="isRecording"
+>
+  <option value="hi-IN">Hindi</option>
+  <option value="en-US">English (US)</option>
+  <option value="en-IN">English (India)</option>
+  <option value="kn-IN">Kannada</option>
+  <option value="auto">Automatic detection (not available yet)</option>
+</select>
+
+          </div>
+
+          <div class="privacy-indicator">
+            <span>♧</span> Microphone access required
+          </div>
+        </div>
+
+       
+<div class="recording-stage" [class.is-recording]="isRecording">
+
+  <div class="recording-indicator" *ngIf="isRecording">
+    <span class="live-dot"></span>
+    LIVE RECORDING
+  </div>
+
+  <div class="waveform" [class.waveform-active]="isRecording" aria-hidden="true">
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+    <span></span>
+  </div>
+
+  <h3>
+    {{ isRecording ? 'Listening to your voice...' : 'Ready to capture your voice' }}
+  </h3>
+
+  <p>
+    {{
+      isRecording
+        ? 'Speak naturally. Your recognized words will appear in the transcript editor below.'
+        : 'Choose a language, start recording, and your recognized speech will appear in the editor.'
+    }}
+  </p>
+
+  <div class="recording-actions">
+    <button
+      *ngIf="!isRecording"
+      type="button"
+      class="start-button"
+      (click)="startRecording()"
+    >
+      <span class="button-mic">🎙</span>
+      Start recording
+    </button>
+
+    <button
+      *ngIf="isRecording"
+      type="button"
+      class="stop-button"
+      (click)="stopRecording()"
+    >
+      <span class="stop-square"></span>
+      Stop recording
+    </button>
+  </div>
+
+  <span class="stage-footnote">
+    {{ isRecording ? 'Recording is active · Stop when finished' : statusMessage }}
+  </span>
+
+  <p *ngIf="!isSpeechSupported" class="speech-error">
+    Your current browser does not support the Web Speech API.
+    Try a supported version of Chrome or Edge.
+  </p>
+
+</div>
+
+        <div class="field-block">
+          <div class="field-heading">
+            <label for="transcript-title">Transcript title</label>
+            <span>Required</span>
+          </div>
+
+          <input
+            id="transcript-title"
+            class="text-input"
+            type="text"
+            [(ngModel)]="title"
+            maxlength="200"
+            placeholder="e.g. Team meeting notes" />
+        </div>
+
+        <div class="field-block">
+          <div class="field-heading">
+            <label for="transcript">Transcript editor</label>
+            <span>Editable draft</span>
+          </div>
+
+          <textarea
+            id="transcript"
+            class="transcript-input"
+            [(ngModel)]="transcriptText"
+            placeholder="Your recognized speech will appear here. You can also type or paste text to test the editor..."
+            rows="8"></textarea>
+
+          <div class="editor-meta">
+            <span>
+              {{ wordCount }} words · {{ characterCount }} characters
+            </span>
+
+            <button
+              type="button"
+              class="clear-button"
+              (click)="clearTranscript()">
+              Clear draft
+            </button>
+          </div>
+        </div>
+
+        <div class="editor-actions">
+          <button
+            type="button"
+            class="secondary-button"
+            (click)="clearTranscript()">
+            Discard draft
+          </button>
+
+          <button
+            type="button"
+            class="save-button"
+            [disabled]="!title.trim() || !transcriptText.trim()"
+            (click)="saveTranscript()">
+            Save transcription <span>→</span>
+          </button>
+        </div>
+      </article>
+
+      <aside class="right-column">
+        <article class="panel side-panel">
+          <div class="side-panel-heading">
+            <h2>Session configuration</h2>
+            <span class="config-icon">⚙</span>
+          </div>
+
+          <div class="config-row">
+            <div class="config-symbol">文</div>
+            <div class="config-copy">
+              <strong>Recognition language</strong>
+              <span>{{ selectedLanguage }}</span>
+            </div>
+          </div>
+
+          <div class="config-row">
+            <div class="config-symbol">◉</div>
+            <div class="config-copy">
+              <strong>Recognition mode</strong>
+<span>Browser-based live transcription</span>
+            </div>
+          </div>
+
+          <div class="config-row">
+            <div class="config-symbol">▤</div>
+            <div class="config-copy">
+              <strong>Storage</strong>
+              <span>Spring Boot + MySQL</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel side-panel">
+          <div class="side-panel-heading">
+            <h2>Workflow</h2>
+            <span class="workflow-count">3 steps</span>
+          </div>
+
+          <div class="workflow-step">
+            <span class="step-number completed">1</span>
+            <div>
+              <strong>Capture speech</strong>
+              <p>Microphone and live recognition</p>
+            </div>
+          </div>
+
+          <div class="workflow-line"></div>
+
+          <div class="workflow-step">
+            <span class="step-number">2</span>
+            <div>
+              <strong>Review transcript</strong>
+              <p>Correct and name your draft</p>
+            </div>
+          </div>
+
+          <div class="workflow-line"></div>
+
+          <div class="workflow-step">
+            <span class="step-number">3</span>
+            <div>
+              <strong>Save to history</strong>
+              <p>Store and manage records in MySQL</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="notice-card">
+          <span class="notice-icon">i</span>
+          <div>
+            <strong>Development environment</strong>
+            <p>
+  Speech recognition uses your browser. Transcripts are saved
+  through Spring Boot and MySQL.
+</p>
+          </div>
+        </article>
+      </aside>
+    </section>
+
+    <footer class="footer">
+      <span>SpeechNote AI</span>
+      <span>Angular · Spring Boot · MySQL</span>
+    </footer>
+  </main>
+</div>
+
+<!-- Toast is outside app-shell so the dashboard layout cannot position it -->
+<div
+  *ngIf="notificationMessage"
+  class="toast-popup"
+  [class.toast-success]="notificationType === 'success'"
+  [class.toast-error]="notificationType === 'error'"
+  role="status"
+  aria-live="polite">
+
+  <div class="toast-icon">
+    {{ notificationType === 'success' ? '✓' : '!' }}
+  </div>
+
+  <div class="toast-content">
+    <strong>
+      {{ notificationType === 'success' ? 'Success!' : 'Error!' }}
+    </strong>
+    <p>{{ notificationMessage }}</p>
+  </div>
+
+  <button
+    type="button"
+    class="toast-close"
+    aria-label="Close notification"
+    (click)="notificationMessage = ''">
+    &times;
+  </button>
+</div>
