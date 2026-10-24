@@ -330,11 +330,10 @@ GitHub: [anp143](https://github.com/anp143)
 
 No license has been specified yet. Add a `LICENSE` file if you intend to publish this project under an open-source license.
 
-
 ## 📸 Application Screenshots
 
 ### Dashboard
 ![SpeechNote AI Dashboard](screenshots/dashboard.png)
 
 ### Transcription History
-![SpeechNote AI Transcription History](screenshots/history.png)
+![SpeechNote AI History](screenshots/history.png)
